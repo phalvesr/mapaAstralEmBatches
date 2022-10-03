@@ -18,12 +18,15 @@ public class MapaAstralApplication {
 		MapaAstralService mapaAstralService = new MapaAstralService();
 		//LocalDate localDateLucas = LocalDate.of(localDateTimeLucas.getYear(),localDateTimeLucas.getMonth(),localDateTimeLucas.getDayOfMonth());
 
+
 		//Lucas
 
 		String signoLucas = mapaAstralService.buscaPorSigno(localDateTimeLucas.toLocalDate());
 		String signoAscendenteLucas = mapaAstralService.procurarAscendente(signoLucas, LocalTime.from(localDateTimeLucas));
 		String buscaSignoPorEnunLucas = mapaAstralService.buscaSignoPorEnun(localDateTimeLucas);
 		mapaAstralService.mapaAstral(localDateTimeLucas);
+		String localizarSingnoLunarLucas = mapaAstralService.localizarSingnoLunar(LocalTime.from(localDateTimeLucas),"Recife");
+		System.out.println(localizarSingnoLunarLucas);
 
 		//Ingrid
 
@@ -31,6 +34,9 @@ public class MapaAstralApplication {
 		String signoAscendenteIngrid = mapaAstralService.procurarAscendente(signoIngrid, LocalTime.from(localDateTimeIngrid));
 		String buscaSignoPorEnunIngrid = mapaAstralService.buscaSignoPorEnun(localDateTimeIngrid);
 		mapaAstralService.mapaAstral(localDateTimeIngrid);
+
+		String localizarSingnoLunarIngrid = mapaAstralService.localizarSingnoLunar(LocalTime.from(localDateTimeIngrid),"Sao_Paulo");
+		System.out.println(localizarSingnoLunarIngrid);
 	}
 }
 

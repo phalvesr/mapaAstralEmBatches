@@ -1,10 +1,11 @@
 package com.ada.mapaAstral.service;
 
-import com.ada.mapaAstral.Signo;
+import com.ada.mapaAstral.Enum.Signo;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.Set;
 
 public class MapaAstralService {
 
@@ -113,25 +114,29 @@ public class MapaAstralService {
 
     }
 
+    public String localizarSingnoLunar(LocalTime time, String localNascimento) {
+        Set<String> zones = ZoneId.getAvailableZoneIds();
+        for (String s : zones) {
+            if (s.contains((localNascimento))) {
+                ZoneId zoneID = ZoneId.of(s);
+                System.out.println(zoneID);
 
-//        System.out.println("Signo Lunar: " + singnoLunar(dataHoraNascimento.toLocalTime(), "Recife"));
+                if (zoneID.toString().equals("America/Recife") && time.isAfter(LocalTime.NOON)) {
+                    return "Casimiro";
+                }
 
-//    public String singnoLunar(LocalTime time, String localNascimento){
-//        Set<String> zones = ZoneId.getAvailableZoneIds();
-//        LocalTime localTime = LocalTime.now();
-//
-//        System.out.println(zones);
-//        System.out.println(zones);
-//
-//        for(String s : zones) {
-//            if (s.contains(zone)) {
-//                ZoneId zoneId = ZoneId.of(s);
-//                System.out.println(zoneId);
-//            }
-//        }
-//        return " ";
+                if (zoneID.toString().equals("America/Cuiaba") && time.isAfter(LocalTime.NOON)) {
+                    return "Odin";
+                }
+                if (zoneID.toString().equals("America/Sao_Paulo")) {
+                    return "Gandalf";
+                }
+            }
+        }
+        return "Dinossauro";
+
+    }
 }
-
 
 
 /*
