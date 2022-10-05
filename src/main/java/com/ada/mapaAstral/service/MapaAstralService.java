@@ -1,6 +1,6 @@
 package com.ada.mapaAstral.service;
 
-import com.ada.mapaAstral.Enum.Signo;
+import com.ada.mapaAstral.enumeration.Signo;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;

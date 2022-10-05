@@ -1,4 +1,4 @@
-package com.ada.mapaAstral.Enum;
+package com.ada.mapaAstral.enumeration;
 
 import java.time.MonthDay;
 

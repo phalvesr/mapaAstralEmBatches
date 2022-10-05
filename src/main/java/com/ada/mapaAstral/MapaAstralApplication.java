@@ -1,5 +1,6 @@
 package com.ada.mapaAstral;
 
+import com.ada.mapaAstral.repository.PessoaRepository;
 import com.ada.mapaAstral.service.MapaAstralService;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -17,6 +18,9 @@ public class MapaAstralApplication {
 
 		MapaAstralService mapaAstralService = new MapaAstralService();
 		//LocalDate localDateLucas = LocalDate.of(localDateTimeLucas.getYear(),localDateTimeLucas.getMonth(),localDateTimeLucas.getDayOfMonth());
+
+		PessoaRepository pessoaRepository = new PessoaRepository();
+		pessoaRepository.getListaPessoas(); 
 
 
 		//Lucas
