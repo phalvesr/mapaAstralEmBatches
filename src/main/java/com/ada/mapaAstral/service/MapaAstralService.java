@@ -1,27 +1,32 @@
 package com.ada.mapaAstral.service;
 
 import com.ada.mapaAstral.enumeration.Signo;
+import com.ada.mapaAstral.model.MapaAstral;
+import com.ada.mapaAstral.model.Pessoa;
+import com.ada.mapaAstral.util.Util;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.Arrays;
 import java.util.Set;
 
 public class MapaAstralService {
 
+    public void gravaInformacoesPessoa(Pessoa pessoa) {
+        MapaAstral mapaAstral = mapaAstral(pessoa.getDataNascimento(), pessoa.getZoneId().toString());
+
+        repository.salvarArquivo(pessoa, mapaAstral);
+    }
+
     public String buscaSignoPorEnun(LocalDateTime datanascimento) {
         MonthDay monthDayNascimento = MonthDay.of(datanascimento.getMonth(), datanascimento.getDayOfMonth());
 
-        for (Signo signo : Signo.values()) {
-            if (isWithinRange(monthDayNascimento, signo.getDataComeco(), signo.getDataFim())) {
-                System.out.println(signo.getNome());
-                return signo.toString();
-            }
-
-        }
-        System.out.println("Não tem signo");
-        return "Não tem signo!!";
-
+        return Arrays.stream(Signo.values())
+                .filter(s -> Util.isWithinRange(monthDayNascimento, s.getDataComeco(), s.getDataFim()))
+                .findFirst()
+                .map(Enum::toString)
+                .orElse("Não tem signo!!");
     }
 
     public String buscaPorSigno(LocalDate datanascimento) {
@@ -33,52 +38,41 @@ public class MapaAstralService {
         MonthDay sagitarioStartDate = MonthDay.of(11, 22);
         MonthDay sagitarioEndDate = MonthDay.of(12, 21);
 
-        if (isWithinRange(monthDayNascimento, ariesStartDate, ariesEndDate)) {
+        if (Util.isWithinRange(monthDayNascimento, ariesStartDate, ariesEndDate)) {
             return "Aries";
-        } else if (isWithinRange(monthDayNascimento, sagitarioStartDate, sagitarioEndDate)) {
+        } else if (Util.isWithinRange(monthDayNascimento, sagitarioStartDate, sagitarioEndDate)) {
             return "Sagitario";
         }
-
         return "Não tem signo!!";
-
-    }
-
-    private boolean isWithinRange(MonthDay dataNascimento, MonthDay startDate, MonthDay endDate) {
-        return !(dataNascimento.isBefore(startDate) || dataNascimento.isAfter(endDate));
-    }
-
-    private boolean isWithinRange(LocalTime horarioDeNascimento, LocalTime startTime, LocalTime endTime) {
-        return !(horarioDeNascimento.isBefore(startTime) || horarioDeNascimento.isAfter(endTime));
     }
 
     public String procurarAscendente(String signo, LocalTime horarioDeNascimento) {
         if ("Aries".equalsIgnoreCase(signo)) {
-            if (isWithinRange(horarioDeNascimento, LocalTime.of(18, 31), LocalTime.of(20, 30))) {
+            if (Util.isWithinRange(horarioDeNascimento, LocalTime.of(18, 31), LocalTime.of(20, 30))) {
                 return "escorpião";
             }
         } else if ("sagitario".equalsIgnoreCase(signo)) {
-            if (isWithinRange(horarioDeNascimento, LocalTime.of(10, 31), LocalTime.of(12, 30))) {
+            if (Util.isWithinRange(horarioDeNascimento, LocalTime.of(10, 31), LocalTime.of(12, 30))) {
                 return "Peixes";
             }
-
         }
-
         return "Ufa, não tem ascendente";
     }
 
-    public void mapaAstral(LocalDateTime dataHoraNascimento) {
+    public MapaAstral mapaAstral(LocalDateTime dataHoraNascimento, String localNascimento) {
 
         localizarIdade(dataHoraNascimento);
         buscaPorZona(dataHoraNascimento);
         formarDataDeNascimento(dataHoraNascimento);
 
         System.out.println("Ano Bissexto:  " + dataHoraNascimento.toLocalDate().isLeapYear());
-        System.out.println("Signo: " + buscaPorSigno(dataHoraNascimento.toLocalDate()));
+        System.out.println("Signo: " + );
 
+        String signo = buscaPorSigno(dataHoraNascimento.toLocalDate());
+        String ascendente = procurarAscendente(signo, dataHoraNascimento.toLocalTime());
+        String signoLunar = localizarSingnoLunar(dataHoraNascimento.toLocalTime(), localNascimento);
 
-        buscaPorAcendente(dataHoraNascimento);
-
-        System.out.println("####################");
+        return new MapaAstral(signo, ascendente, signoLunar);
     }
 
     private void localizarIdade(LocalDateTime dataHoraNascimento) {
@@ -102,7 +96,6 @@ public class MapaAstralService {
     }
 
     private void buscaPorAcendente(LocalDateTime dataHoraNascimento) {
-
         if (dataHoraNascimento.getYear() > 1976) {
             System.out.println("Ascendente: " + procurarAscendente(buscaPorSigno(dataHoraNascimento.toLocalDate()), dataHoraNascimento.toLocalTime().minusHours(2)));
         } else if (dataHoraNascimento.getYear() > 1946 && dataHoraNascimento.getYear() < 1975) {

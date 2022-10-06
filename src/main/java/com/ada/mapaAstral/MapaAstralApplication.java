@@ -21,7 +21,9 @@ public class MapaAstralApplication {
 		PessoaRepository pessoaRepository = new PessoaRepository();
 		List<Pessoa> pessoas = pessoaRepository.getPessoas();
 
-
+		for(Pessoa pessoa : pessoas) {
+			mapaAstralService.gravaInformacoesPessoa(pessoa);
+		}
 	}
 }
 

@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 @Getter
@@ -12,6 +12,6 @@ import java.time.ZoneId;
 @AllArgsConstructor
 public class Pessoa {
     private String nome;
-    private LocalDate dataNascimento;
+    private LocalDateTime dataNascimento;
     private ZoneId zoneId;
 }
