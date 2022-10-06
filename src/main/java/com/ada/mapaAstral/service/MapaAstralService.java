@@ -3,20 +3,40 @@ package com.ada.mapaAstral.service;
 import com.ada.mapaAstral.enumeration.Signo;
 import com.ada.mapaAstral.model.MapaAstral;
 import com.ada.mapaAstral.model.Pessoa;
+import com.ada.mapaAstral.repository.PessoaRepository;
 import com.ada.mapaAstral.util.Util;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
+@RequiredArgsConstructor
 public class MapaAstralService {
+
+    private final PessoaRepository repository = new PessoaRepository();
+
+    public List<Pessoa> getPessoas() {
+        try {
+            return repository.getPessoas();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public void gravaInformacoesPessoa(Pessoa pessoa) {
         MapaAstral mapaAstral = mapaAstral(pessoa.getDataNascimento(), pessoa.getZoneId().toString());
 
-        repository.salvarArquivo(pessoa, mapaAstral);
+        try {
+            repository.createArquivoGravaPessoa(pessoa, mapaAstral);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String buscaSignoPorEnun(LocalDateTime datanascimento) {
@@ -65,9 +85,6 @@ public class MapaAstralService {
         buscaPorZona(dataHoraNascimento);
         formarDataDeNascimento(dataHoraNascimento);
 
-        System.out.println("Ano Bissexto:  " + dataHoraNascimento.toLocalDate().isLeapYear());
-        System.out.println("Signo: " + );
-
         String signo = buscaPorSigno(dataHoraNascimento.toLocalDate());
         String ascendente = procurarAscendente(signo, dataHoraNascimento.toLocalTime());
         String signoLunar = localizarSingnoLunar(dataHoraNascimento.toLocalTime(), localNascimento);
@@ -102,9 +119,7 @@ public class MapaAstralService {
             System.out.println("Ascendente: " + procurarAscendente(buscaPorSigno(dataHoraNascimento.toLocalDate()), dataHoraNascimento.toLocalTime().minusHours(2)));
         } else {
             System.out.println("Ascendente: " + procurarAscendente(buscaPorSigno(dataHoraNascimento.toLocalDate()), dataHoraNascimento.toLocalTime()));
-
         }
-
     }
 
     public String localizarSingnoLunar(LocalTime time, String localNascimento) {
@@ -127,7 +142,6 @@ public class MapaAstralService {
             }
         }
         return "Dinossauro";
-
     }
 }
 

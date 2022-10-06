@@ -2,18 +2,24 @@ package com.ada.mapaAstral.repository;
 
 import com.ada.mapaAstral.model.MapaAstral;
 import com.ada.mapaAstral.model.Pessoa;
+import com.ada.mapaAstral.type.either.Either;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.couchbase.CouchbaseProperties;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
 public class PessoaRepository {
 
     private final static String HOME_DIR = System.getProperty("user.dir");
@@ -41,10 +47,25 @@ public class PessoaRepository {
         }
     }
 
-    private void createArquivoGravaPessoa(Pessoa pessoa, MapaAstral mapaAstral) {
+    public void createArquivoGravaPessoa(Pessoa pessoa, MapaAstral mapaAstral) throws IOException {
         String caminhoArquivoSaida = Paths.get(HOME_DIR, "src", pessoa.getNome()).toString();
 
         Path pathArquivoSaida = Paths.get(caminhoArquivoSaida + ".csv");
+
+        Files.deleteIfExists(pathArquivoSaida);
+
         Files.createFile(pathArquivoSaida);
+        
+        Files.writeString(
+                pathArquivoSaida,
+                pessoa.toString().concat("\n").concat(mapaAstral.toString())
+        );
+        System.out.println("criou " + pathArquivoSaida);
+    }
+
+    public Either salvarArquivo(Pessoa pessoa, MapaAstral mapaAstral) {
+        return null;
     }
 }
+
+

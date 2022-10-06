@@ -11,4 +11,9 @@ public class MapaAstral {
     private String signo;
     private String ascendente;
     private String signoLunar;
+
+    @Override
+    public String toString() {
+        return signo.concat(",").concat(ascendente).concat(",").concat(signoLunar);
+    }
 }

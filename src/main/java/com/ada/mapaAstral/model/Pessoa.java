@@ -14,4 +14,9 @@ public class Pessoa {
     private String nome;
     private LocalDateTime dataNascimento;
     private ZoneId zoneId;
+
+    @Override
+    public String toString() {
+        return nome.concat(",").concat(dataNascimento.toString()).concat(",").concat(zoneId.toString());
+    }
 }
