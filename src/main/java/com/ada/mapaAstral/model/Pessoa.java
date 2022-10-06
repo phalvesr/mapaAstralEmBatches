@@ -6,17 +6,18 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Arrays;
 
 @Getter
 @Setter
 @AllArgsConstructor
-public class Pessoa {
+public class Pessoa implements CSVConvertible {
     private String nome;
     private LocalDateTime dataNascimento;
     private ZoneId zoneId;
 
     @Override
-    public String toString() {
-        return nome.concat(",").concat(dataNascimento.toString()).concat(",").concat(zoneId.toString());
+    public String toCSV() {
+        return String.format("%s,%s,%s", nome, dataNascimento, zoneId);
     }
 }

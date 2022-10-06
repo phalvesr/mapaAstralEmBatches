@@ -1,52 +1,46 @@
 package com.ada.mapaAstral.service;
 
-import com.ada.mapaAstral.enumeration.Signo;
 import com.ada.mapaAstral.model.MapaAstral;
 import com.ada.mapaAstral.model.Pessoa;
 import com.ada.mapaAstral.repository.PessoaRepository;
+import com.ada.mapaAstral.type.ArquivoSalvo;
+import com.ada.mapaAstral.type.either.Either;
 import com.ada.mapaAstral.util.Util;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 @RequiredArgsConstructor
 public class MapaAstralService {
 
-    private final PessoaRepository repository = new PessoaRepository();
+    private final PessoaRepository repository;
 
     public List<Pessoa> getPessoas() {
-        try {
-            return repository.getPessoas();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+
+        Either<Exception, List<Pessoa>> resultadoBuscaPessoas =  repository.findAll();
+
+        if (resultadoBuscaPessoas.isLeft()) {
+            System.out.println(resultadoBuscaPessoas.unsafeGetLeft().getMessage());
+            return Collections.emptyList();
+        } else {
+            return resultadoBuscaPessoas.unsafeGetRight();
         }
     }
 
     public void gravaInformacoesPessoa(Pessoa pessoa) {
         MapaAstral mapaAstral = mapaAstral(pessoa.getDataNascimento(), pessoa.getZoneId().toString());
 
-        try {
-            repository.createArquivoGravaPessoa(pessoa, mapaAstral);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        Either<Exception, ArquivoSalvo> resultadoPersistencia = repository.salvar(pessoa, mapaAstral);
+
+        if (resultadoPersistencia.isLeft()) {
+            System.out.format("Erro ao salvar arquivo csv. Mensagem de exception: %s%n", resultadoPersistencia.unsafeGetLeft().getMessage());
+        } else {
+            System.out.println(resultadoPersistencia.unsafeGetRight().getMessage());
         }
-    }
-
-    public String buscaSignoPorEnun(LocalDateTime datanascimento) {
-        MonthDay monthDayNascimento = MonthDay.of(datanascimento.getMonth(), datanascimento.getDayOfMonth());
-
-        return Arrays.stream(Signo.values())
-                .filter(s -> Util.isWithinRange(monthDayNascimento, s.getDataComeco(), s.getDataFim()))
-                .findFirst()
-                .map(Enum::toString)
-                .orElse("Não tem signo!!");
     }
 
     public String buscaPorSigno(LocalDate datanascimento) {
@@ -107,19 +101,8 @@ public class MapaAstralService {
 
     private void formarDataDeNascimento(LocalDateTime dataHoraNascimento) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        DateTimeFormatter formatter1 = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT);
         String format = formatter.format(dataHoraNascimento);
         System.out.println(format);
-    }
-
-    private void buscaPorAcendente(LocalDateTime dataHoraNascimento) {
-        if (dataHoraNascimento.getYear() > 1976) {
-            System.out.println("Ascendente: " + procurarAscendente(buscaPorSigno(dataHoraNascimento.toLocalDate()), dataHoraNascimento.toLocalTime().minusHours(2)));
-        } else if (dataHoraNascimento.getYear() > 1946 && dataHoraNascimento.getYear() < 1975) {
-            System.out.println("Ascendente: " + procurarAscendente(buscaPorSigno(dataHoraNascimento.toLocalDate()), dataHoraNascimento.toLocalTime().minusHours(2)));
-        } else {
-            System.out.println("Ascendente: " + procurarAscendente(buscaPorSigno(dataHoraNascimento.toLocalDate()), dataHoraNascimento.toLocalTime()));
-        }
     }
 
     public String localizarSingnoLunar(LocalTime time, String localNascimento) {

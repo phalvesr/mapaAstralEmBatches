@@ -1,14 +1,21 @@
 package com.ada.mapaAstral.type.either;
 
-public class Right<TLeft, TRight> {
-    private TRight value;
+public class Right<TLeft, TRight> implements Either<TLeft, TRight> {
+    private final TRight value;
+    private Right(TRight value) {
+        this.value = value;
+    }
+
+    public static <TLeft, TRight> Right<TLeft, TRight> create(TRight value) {
+        return new Right<>(value);
+    }
 
     public boolean isLeft() {
-        return true;
+        return false;
     }
 
     public boolean isRight() {
-        return false;
+        return true;
     }
 
     public TRight unsafeGetRight() {

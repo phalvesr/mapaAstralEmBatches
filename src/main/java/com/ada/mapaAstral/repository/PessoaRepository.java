@@ -1,10 +1,13 @@
 package com.ada.mapaAstral.repository;
 
+import com.ada.mapaAstral.model.CSVConvertible;
 import com.ada.mapaAstral.model.MapaAstral;
 import com.ada.mapaAstral.model.Pessoa;
+import com.ada.mapaAstral.type.ArquivoSalvo;
 import com.ada.mapaAstral.type.either.Either;
+import com.ada.mapaAstral.type.either.Left;
+import com.ada.mapaAstral.type.either.Right;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.autoconfigure.couchbase.CouchbaseProperties;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -15,31 +18,32 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+@Component
 @RequiredArgsConstructor
 public class PessoaRepository {
 
     private final static String HOME_DIR = System.getProperty("user.dir");
 
-    private final static String caminhoArquivoEntrada = Paths.get(HOME_DIR, "src", "pessoas.csv").toString();
-
-    public List<Pessoa> getPessoas() throws IOException {
-
-        Path path = Paths.get(caminhoArquivoEntrada);
-
-        return Files.lines(path, StandardCharsets.UTF_8)
-                .map(this::createPessoaFromLine)
-                .collect(Collectors.toList());
+    public Either<Exception, List<Pessoa>> findAll() {
+        try {
+            return getPessoasArquivo();
+        } catch (Exception e) {
+            return Left.create(e);
+        }
     }
 
     private Pessoa createPessoaFromLine(String line) {
+
         try (Scanner scanner = new Scanner(line)) {
             scanner.useDelimiter(",");
 
-            String nome = scanner.next();
+            String nome = scanner.next().trim();
             ZoneId zoneId = ZoneId.of(scanner.next());
             LocalDateTime dataNascimento = LocalDateTime.parse(scanner.next());
 
@@ -47,24 +51,59 @@ public class PessoaRepository {
         }
     }
 
-    public void createArquivoGravaPessoa(Pessoa pessoa, MapaAstral mapaAstral) throws IOException {
-        String caminhoArquivoSaida = Paths.get(HOME_DIR, "src", pessoa.getNome()).toString();
+    public Either<Exception, ArquivoSalvo> salvar(Pessoa pessoa, MapaAstral mapaAstral) {
 
-        Path pathArquivoSaida = Paths.get(caminhoArquivoSaida + ".csv");
-
-        Files.deleteIfExists(pathArquivoSaida);
-
-        Files.createFile(pathArquivoSaida);
-        
-        Files.writeString(
-                pathArquivoSaida,
-                pessoa.toString().concat("\n").concat(mapaAstral.toString())
-        );
-        System.out.println("criou " + pathArquivoSaida);
+        try {
+            return salvarPessoaEMapaAstralEmArquivo(pessoa, mapaAstral);
+        } catch (IOException e) {
+            return Left.create(e);
+        }
     }
 
-    public Either salvarArquivo(Pessoa pessoa, MapaAstral mapaAstral) {
-        return null;
+    private Right<Exception, ArquivoSalvo> salvarPessoaEMapaAstralEmArquivo(Pessoa pessoa, MapaAstral mapaAstral) throws IOException {
+
+        String nomeArquivoCSV = getNomeArquivoCSVComNomePessoa(pessoa);
+        Path path = Paths.get(HOME_DIR, "output", nomeArquivoCSV);
+
+        String conteudoArquivo = concatenarConteudoCSV(pessoa, mapaAstral);
+
+        Files.deleteIfExists(path);
+        Files.createFile(path);
+
+        Files.writeString(
+            path,
+            conteudoArquivo,
+            StandardCharsets.UTF_8,
+            StandardOpenOption.TRUNCATE_EXISTING
+        );
+
+        return Right.create(
+            new ArquivoSalvo(String.format("Arquivo criado no caminho %s", path))
+        );
+    }
+
+    private String concatenarConteudoCSV(CSVConvertible... convertibles) {
+
+        return Arrays.stream(convertibles)
+            .map(CSVConvertible::toCSV)
+            .collect(Collectors.joining(System.lineSeparator()));
+    }
+
+    private String getNomeArquivoCSVComNomePessoa(Pessoa pessoa) {
+        return String.format("%s.csv", pessoa.getNome());
+    }
+
+    private Right<Exception, List<Pessoa>> getPessoasArquivo() throws IOException {
+        Path path = Paths.get(HOME_DIR, "input", "pessoas.csv");
+
+        try (Stream<String> fileStream = Files.lines(path, StandardCharsets.UTF_8)) {
+
+            var pessoas = fileStream
+                    .map(this::createPessoaFromLine)
+                    .toList();
+
+            return Right.create(pessoas);
+        }
     }
 }
 

@@ -2,7 +2,16 @@ package com.ada.mapaAstral.type.either;
 
 public class Left<TLeft, TRight> implements Either<TLeft, TRight> {
 
-    private TLeft value;
+    private final TLeft value;
+
+    private Left(TLeft value) {
+        this.value = value;
+    }
+
+
+    public static <TLeft, TRight> Left<TLeft, TRight> create(TLeft value) {
+        return new Left<>(value);
+    }
 
     public boolean isLeft() {
         return true;
