@@ -22,7 +22,7 @@ public class MapaAstralApplication implements CommandLineRunner {
 
 	@Override
 	public void run(String... args) {
-		mapaAstralService.importarMapasAstrais();
+		mapaAstralService.importar();
 	}
 }
 

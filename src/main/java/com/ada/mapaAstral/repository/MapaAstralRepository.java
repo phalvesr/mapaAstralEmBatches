@@ -7,7 +7,9 @@ import com.ada.mapaAstral.type.either.Left;
 import com.ada.mapaAstral.type.either.Right;
 import org.springframework.stereotype.Repository;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,7 +24,7 @@ public class MapaAstralRepository {
     public Either<Exception, ArquivoSalvo> salvar(MapaAstral mapaAstral) {
 
         try {
-            return salvarPessoaEMapaAstralEmArquivo(mapaAstral);
+            return salvarMapaAstralEmArquivo(mapaAstral);
         } catch (IOException e) {
             return Left.create(e);
         }
@@ -30,49 +32,69 @@ public class MapaAstralRepository {
 
     public Either<Exception, ArquivoSalvo> salvar(MapaAstral mapaAstral, String nome) {
         try {
-            return salvarPessoaEMapaAstralEmArquivo(mapaAstral, nome);
+            return salvarMapaAstralEmArquivo(mapaAstral, nome);
         } catch (IOException e) {
             return Left.create(new RuntimeException("Servidor nao pôde processar o arquivo enviado. Aguarde e tente novamente.", e));
         }
     }
 
-    private Either<Exception, ArquivoSalvo> salvarPessoaEMapaAstralEmArquivo(MapaAstral mapaAstral, String nome) throws IOException {
+    public Either<Exception, InputStream> buscarPorNome(String nome) {
+        try {
+            return getStreamArquivo(nome);
+        } catch (FileNotFoundException e) {
+            return Left.create(new RuntimeException(String.format("Mapa astral nome %s não encontrado", nome)));
+        } catch (IOException e) {
+            return Left.create(e);
+        }
+    }
+
+    private Either<Exception, InputStream> getStreamArquivo(String nome) throws IOException {
+
         String nomeArquivoCSV = getNomeArquivoCSV(nome);
-        Path path = Paths.get(HOME_DIR, "output", "upload", nomeArquivoCSV);
+        Path caminho = Paths.get(HOME_DIR, "output", "upload", nomeArquivoCSV);
+
+        InputStream inputStream = Files.newInputStream(caminho, StandardOpenOption.READ);
+
+        return Right.create(inputStream);
+    }
+
+    private Either<Exception, ArquivoSalvo> salvarMapaAstralEmArquivo(MapaAstral mapaAstral, String nome) throws IOException {
+        String nomeArquivoCSV = getNomeArquivoCSV(nome);
+        Path caminho = Paths.get(HOME_DIR, "output", "upload", nomeArquivoCSV);
 
         String conteudo = gerarConteudoArquivo(mapaAstral);
 
-        deletarArquivoEmCasoDeExistencia(path);
-        salvarConteudoEmArquivo(conteudo, path);
+        deletarArquivoEmCasoDeExistencia(caminho);
+        salvarConteudoEmArquivo(conteudo, caminho);
 
         return Right.create(new ArquivoSalvo(String.format("Arquivo nome %s salvo com sucesso!", nome)));
     }
 
-    private Right<Exception, ArquivoSalvo> salvarPessoaEMapaAstralEmArquivo(MapaAstral mapaAstral) throws IOException {
+    private Right<Exception, ArquivoSalvo> salvarMapaAstralEmArquivo(MapaAstral mapaAstral) throws IOException {
 
         String nomeArquivoCSV = getNomeArquivoCSV(mapaAstral.getPessoa().getNome());
-        Path path = Paths.get(HOME_DIR, "output", nomeArquivoCSV);
+        Path caminho = Paths.get(HOME_DIR, "output", nomeArquivoCSV);
 
         String conteudoArquivo = gerarConteudoArquivo(mapaAstral);
 
-        deletarArquivoEmCasoDeExistencia(path);
-        salvarConteudoEmArquivo(conteudoArquivo, path);
+        deletarArquivoEmCasoDeExistencia(caminho);
+        salvarConteudoEmArquivo(conteudoArquivo, caminho);
 
         return Right.create(
-            new ArquivoSalvo(String.format("Arquivo criado no caminho %s", path))
+            new ArquivoSalvo(String.format("Arquivo criado no caminho %s", caminho))
         );
     }
 
-    private static void deletarArquivoEmCasoDeExistencia(Path path) throws IOException {
-        Files.deleteIfExists(path);
+    private static void deletarArquivoEmCasoDeExistencia(Path caminho) throws IOException {
+        Files.deleteIfExists(caminho);
     }
 
-    private static void salvarConteudoEmArquivo(String conteudoArquivo, Path path) throws IOException {
+    private static void salvarConteudoEmArquivo(String conteudoArquivo, Path caminho) throws IOException {
 
-        Files.createFile(path);
+        Files.createFile(caminho);
 
         Files.writeString(
-                path,
+                caminho,
                 conteudoArquivo,
             StandardCharsets.UTF_8,
             StandardOpenOption.TRUNCATE_EXISTING

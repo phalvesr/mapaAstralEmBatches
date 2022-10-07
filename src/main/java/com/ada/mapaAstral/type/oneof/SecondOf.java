@@ -2,7 +2,7 @@ package com.ada.mapaAstral.type.oneof;
 
 import java.util.function.Function;
 
-public class SecondOf<TFirst, TSecond, TThird, TFourth> implements OneOf<TFirst, TSecond, TThird, TFourth>{
+public final class SecondOf<TFirst, TSecond, TThird, TFourth> implements OneOf<TFirst, TSecond, TThird, TFourth>{
 
     private final TSecond value;
 

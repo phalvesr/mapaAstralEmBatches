@@ -12,10 +12,11 @@ import com.ada.mapaAstral.type.oneof.*;
 import com.ada.mapaAstral.util.Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.*;
 import java.util.List;
@@ -32,7 +33,7 @@ public class MapaAstralService {
     private final MapaAstralRepository repository;
     private final PessoaService pessoaService;
 
-    public void importarMapasAstrais() {
+    public void importar() {
 
         List<Pessoa> pessoas = pessoaService.buscarPessoas();
 
@@ -41,11 +42,52 @@ public class MapaAstralService {
         mapasAstrais.forEach(this::persistirMapaAstral);
     }
 
+    public OneOf<IllegalArgumentException, DataFormatException, IOException, MapaAstralCreatedResponse> lidaComArquivoEnviado(MultipartFile file) {
+
+        if (!"text/csv".equals(file.getContentType())) {
+            return FirstOf.create(new IllegalArgumentException("Arquivo enviado não é um formato válido. Certifique-se de enviar um arquivo csv!"));
+        }
+
+        Either<Exception, Pessoa> retornoParsePessoa = parsePessoaFromCSV(file);
+
+        if (retornoParsePessoa.isLeft()) {
+            return SecondOf.create(new DataFormatException(
+                    "Não foi possivel parsear o arquivo enviado. Certifique-se de enviar os dados da pessoa SEM cabeçalhos na ordem: " +
+                            "nome,zoneId nascimento,data e hora nascimento (formato ISO 8601)."));
+        }
+
+        Pessoa pessoa = retornoParsePessoa.unsafeGetRight();
+
+        var mapaAstral = montarMapaAstral(pessoa);
+
+        var codigo = gerarCodigoUpload();
+        var retornoSalvamento = salvarMapaAstral(mapaAstral, codigo);
+
+        if (retornoSalvamento.isLeft()) {
+            return ThirdOf.create(new IOException(retornoSalvamento.unsafeGetLeft().getMessage()));
+        }
+
+        return FourthOf.create(new MapaAstralCreatedResponse(codigo, ZonedDateTime.now()));
+    }
+
     private List<MapaAstral> criarMapasAstrais(List<Pessoa> pessoas) {
 
         return pessoas.stream()
                 .map(this::montarMapaAstral)
                 .toList();
+    }
+
+    public Either<Exception, Resource> buscarPorNome(String nome) {
+
+
+        var resultadoBusca = repository.buscarPorNome(nome);
+
+        if (resultadoBusca.isLeft()) {
+            return Left.create(new RuntimeException("erro!"));
+        }
+
+        Resource resource = new InputStreamResource(resultadoBusca.unsafeGetRight());
+        return Right.create(resource);
     }
 
     private MapaAstral montarMapaAstral(Pessoa pessoa) {
@@ -120,36 +162,6 @@ public class MapaAstralService {
         }
     }
 
-    public OneOf<IllegalArgumentException, DataFormatException, IOException, MapaAstralCreatedResponse> lidaComArquivoEnviado(MultipartFile file) {
-
-        if (!"text/csv".equals(file.getContentType())) {
-            return FirstOf.create(new IllegalArgumentException("Arquivo enviado não é um formato válido. Certifique-se de enviar um arquivo csv!"));
-        }
-
-        Either<Exception, Pessoa> retornoParsePessoa = parsePessoaFromCSV(file);
-
-        if (retornoParsePessoa.isLeft()) {
-            return SecondOf.create(new DataFormatException(
-                    "Não foi possivel parsear o arquivo enviado. Certifique-se de enviar os dados da pessoa SEM cabeçalhos na ordem: " +
-                            "nome,zoneId nascimento,data e hora nascimento (formato ISO 8601)."));
-        }
-
-        Pessoa pessoa = retornoParsePessoa.unsafeGetRight();
-
-        var mapaAstral = montarMapaAstral(pessoa);
-
-        var code = UUID.randomUUID()
-                .toString()
-                .replace("-", "");
-        var retornoSalvamentoArquivo = repository.salvar(mapaAstral, code);
-
-        if (retornoSalvamentoArquivo.isLeft()) {
-            return ThirdOf.create(new IOException(retornoSalvamentoArquivo.unsafeGetLeft().getMessage()));
-        }
-
-        return FourthOf.create(new MapaAstralCreatedResponse(code, ZonedDateTime.now()));
-    }
-
     private Either<Exception, Pessoa> parsePessoaFromCSV(MultipartFile file) {
 
         try (Scanner scanner = new Scanner(file.getInputStream())) {
@@ -159,5 +171,17 @@ public class MapaAstralService {
         } catch (Exception e) {
             return Left.create(e);
         }
+    }
+
+    private String gerarCodigoUpload() {
+
+        return UUID.randomUUID()
+                .toString()
+                .replace("-", "");
+    }
+
+    private Either<Exception, ArquivoSalvo> salvarMapaAstral(MapaAstral mapaAstral, String nome) {
+
+        return repository.salvar(mapaAstral, nome);
     }
 }
