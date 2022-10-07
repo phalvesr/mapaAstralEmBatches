@@ -26,12 +26,4 @@ public class PessoaService {
             return resultadoBuscaPessoas.unsafeGetRight();
         }
     }
-
-//    public void gravaInformacoesPessoa(Pessoa pessoa) {
-//        if (resultadoPersistencia.isLeft()) {
-//            System.out.format("Erro ao salvar arquivo csv. Mensagem de exception: %s%n", resultadoPersistencia.unsafeGetLeft().getMessage());
-//        } else {
-//            System.out.println(resultadoPersistencia.unsafeGetRight().getMessage());
-//        }
-//    }
 }
