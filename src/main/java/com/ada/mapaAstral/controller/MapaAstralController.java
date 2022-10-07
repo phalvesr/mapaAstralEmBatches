@@ -27,6 +27,7 @@ public class MapaAstralController {
         }
 
         return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "text/plain; charset=utf-8")
                 .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\\%s", nome))
                 .body(resultadoBusca.unsafeGetRight());
     }
