@@ -1,9 +1,7 @@
 package com.ada.mapaAstral.service;
 
-import com.ada.mapaAstral.model.MapaAstral;
 import com.ada.mapaAstral.model.Pessoa;
 import com.ada.mapaAstral.repository.PessoaRepository;
-import com.ada.mapaAstral.type.ArquivoSalvo;
 import com.ada.mapaAstral.type.either.Either;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +15,7 @@ public class PessoaService {
 
     private final PessoaRepository repository;
 
-    public List<Pessoa> buscaPessoas() {
+    public List<Pessoa> buscarPessoas() {
 
         Either<Exception, List<Pessoa>> resultadoBuscaPessoas =  repository.findAll();
 

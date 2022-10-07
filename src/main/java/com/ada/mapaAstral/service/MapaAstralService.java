@@ -1,17 +1,31 @@
 package com.ada.mapaAstral.service;
 
+import com.ada.mapaAstral.dto.response.MapaAstralCreatedResponse;
 import com.ada.mapaAstral.model.MapaAstral;
 import com.ada.mapaAstral.model.Pessoa;
 import com.ada.mapaAstral.repository.MapaAstralRepository;
 import com.ada.mapaAstral.type.ArquivoSalvo;
 import com.ada.mapaAstral.type.either.Either;
+import com.ada.mapaAstral.type.either.Left;
+import com.ada.mapaAstral.type.either.Right;
+import com.ada.mapaAstral.type.oneof.*;
 import com.ada.mapaAstral.util.Util;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.*;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Set;
+import java.util.UUID;
+import java.util.zip.DataFormatException;
 
+@Slf4j
+@Service
 @RequiredArgsConstructor
 public class MapaAstralService {
 
@@ -20,7 +34,7 @@ public class MapaAstralService {
 
     public void importarMapasAstrais() {
 
-        List<Pessoa> pessoas = pessoaService.buscaPessoas();
+        List<Pessoa> pessoas = pessoaService.buscarPessoas();
 
         List<MapaAstral> mapasAstrais = criarMapasAstrais(pessoas);
 
@@ -80,7 +94,6 @@ public class MapaAstralService {
         for (String s : zones) {
             if (s.contains((localNascimento))) {
                 ZoneId zoneID = ZoneId.of(s);
-                System.out.println(zoneID);
 
                 if (zoneID.toString().equals("America/Recife") && time.isAfter(LocalTime.NOON)) {
                     return "Casimiro";
@@ -104,6 +117,47 @@ public class MapaAstralService {
             System.out.format("Erro ao salvar arquivo csv. Mensagem de exception: %s%n", resultadoPersistencia.unsafeGetLeft().getMessage());
         } else {
             System.out.println(resultadoPersistencia.unsafeGetRight().getMessage());
+        }
+    }
+
+    public OneOf<IllegalArgumentException, DataFormatException, IOException, MapaAstralCreatedResponse> lidaComArquivoEnviado(MultipartFile file) {
+
+        if (!"text/csv".equals(file.getContentType())) {
+            return FirstOf.create(new IllegalArgumentException("Arquivo enviado não é um formato válido. Certifique-se de enviar um arquivo csv!"));
+        }
+
+        Either<Exception, Pessoa> retornoParsePessoa = parsePessoaFromCSV(file);
+
+        if (retornoParsePessoa.isLeft()) {
+            return SecondOf.create(new DataFormatException(
+                    "Não foi possivel parsear o arquivo enviado. Certifique-se de enviar os dados da pessoa SEM cabeçalhos na ordem: " +
+                            "nome,zoneId nascimento,data e hora nascimento (formato ISO 8601)."));
+        }
+
+        Pessoa pessoa = retornoParsePessoa.unsafeGetRight();
+
+        var mapaAstral = montarMapaAstral(pessoa);
+
+        var code = UUID.randomUUID()
+                .toString()
+                .replace("-", "");
+        var retornoSalvamentoArquivo = repository.salvar(mapaAstral, code);
+
+        if (retornoSalvamentoArquivo.isLeft()) {
+            return ThirdOf.create(new IOException(retornoSalvamentoArquivo.unsafeGetLeft().getMessage()));
+        }
+
+        return FourthOf.create(new MapaAstralCreatedResponse(code, ZonedDateTime.now()));
+    }
+
+    private Either<Exception, Pessoa> parsePessoaFromCSV(MultipartFile file) {
+
+        try (Scanner scanner = new Scanner(file.getInputStream())) {
+
+            Pessoa pessoa = Util.createPessoaFromLine(scanner.nextLine());
+            return Right.create(pessoa);
+        } catch (Exception e) {
+            return Left.create(e);
         }
     }
 }

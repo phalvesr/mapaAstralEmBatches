@@ -1,7 +1,6 @@
 package com.ada.mapaAstral.repository;
 
 import com.ada.mapaAstral.model.MapaAstral;
-import com.ada.mapaAstral.model.Pessoa;
 import com.ada.mapaAstral.type.ArquivoSalvo;
 import com.ada.mapaAstral.type.either.Either;
 import com.ada.mapaAstral.type.either.Left;
@@ -29,25 +28,54 @@ public class MapaAstralRepository {
         }
     }
 
+    public Either<Exception, ArquivoSalvo> salvar(MapaAstral mapaAstral, String nome) {
+        try {
+            return salvarPessoaEMapaAstralEmArquivo(mapaAstral, nome);
+        } catch (IOException e) {
+            return Left.create(new RuntimeException("Servidor nao pôde processar o arquivo enviado. Aguarde e tente novamente.", e));
+        }
+    }
+
+    private Either<Exception, ArquivoSalvo> salvarPessoaEMapaAstralEmArquivo(MapaAstral mapaAstral, String nome) throws IOException {
+        String nomeArquivoCSV = getNomeArquivoCSV(nome);
+        Path path = Paths.get(HOME_DIR, "output", "upload", nomeArquivoCSV);
+
+        String conteudo = gerarConteudoArquivo(mapaAstral);
+
+        deletarArquivoEmCasoDeExistencia(path);
+        salvarConteudoEmArquivo(conteudo, path);
+
+        return Right.create(new ArquivoSalvo(String.format("Arquivo nome %s salvo com sucesso!", nome)));
+    }
+
     private Right<Exception, ArquivoSalvo> salvarPessoaEMapaAstralEmArquivo(MapaAstral mapaAstral) throws IOException {
 
-        String nomeArquivoCSV = getNomeArquivoCSVComNomePessoa(mapaAstral.getPessoa());
+        String nomeArquivoCSV = getNomeArquivoCSV(mapaAstral.getPessoa().getNome());
         Path path = Paths.get(HOME_DIR, "output", nomeArquivoCSV);
 
         String conteudoArquivo = gerarConteudoArquivo(mapaAstral);
 
-        Files.deleteIfExists(path);
-        Files.createFile(path);
-
-        Files.writeString(
-            path,
-            conteudoArquivo,
-            StandardCharsets.UTF_8,
-            StandardOpenOption.TRUNCATE_EXISTING
-        );
+        deletarArquivoEmCasoDeExistencia(path);
+        salvarConteudoEmArquivo(conteudoArquivo, path);
 
         return Right.create(
             new ArquivoSalvo(String.format("Arquivo criado no caminho %s", path))
+        );
+    }
+
+    private static void deletarArquivoEmCasoDeExistencia(Path path) throws IOException {
+        Files.deleteIfExists(path);
+    }
+
+    private static void salvarConteudoEmArquivo(String conteudoArquivo, Path path) throws IOException {
+
+        Files.createFile(path);
+
+        Files.writeString(
+                path,
+                conteudoArquivo,
+            StandardCharsets.UTF_8,
+            StandardOpenOption.TRUNCATE_EXISTING
         );
     }
 
@@ -61,7 +89,7 @@ public class MapaAstralRepository {
         return stringBuilder.toString();
     }
 
-    private String getNomeArquivoCSVComNomePessoa(Pessoa pessoa) {
-        return String.format("%s.csv", pessoa.getNome());
+    private String getNomeArquivoCSV(String nome) {
+        return String.format("%s.csv", nome);
     }
 }
