@@ -51,44 +51,6 @@ public class PessoaRepository {
         }
     }
 
-    public Either<Exception, ArquivoSalvo> salvar(Pessoa pessoa, MapaAstral mapaAstral) {
-
-        try {
-            return salvarPessoaEMapaAstralEmArquivo(pessoa, mapaAstral);
-        } catch (IOException e) {
-            return Left.create(e);
-        }
-    }
-
-    private Right<Exception, ArquivoSalvo> salvarPessoaEMapaAstralEmArquivo(Pessoa pessoa, MapaAstral mapaAstral) throws IOException {
-
-        String nomeArquivoCSV = getNomeArquivoCSVComNomePessoa(pessoa);
-        Path path = Paths.get(HOME_DIR, "output", nomeArquivoCSV);
-
-        String conteudoArquivo = concatenarConteudoCSV(pessoa, mapaAstral);
-
-        Files.deleteIfExists(path);
-        Files.createFile(path);
-
-        Files.writeString(
-            path,
-            conteudoArquivo,
-            StandardCharsets.UTF_8,
-            StandardOpenOption.TRUNCATE_EXISTING
-        );
-
-        return Right.create(
-            new ArquivoSalvo(String.format("Arquivo criado no caminho %s", path))
-        );
-    }
-
-    private String concatenarConteudoCSV(CSVConvertible... convertibles) {
-
-        return Arrays.stream(convertibles)
-            .map(CSVConvertible::toCSV)
-            .collect(Collectors.joining(System.lineSeparator()));
-    }
-
     private String getNomeArquivoCSVComNomePessoa(Pessoa pessoa) {
         return String.format("%s.csv", pessoa.getNome());
     }

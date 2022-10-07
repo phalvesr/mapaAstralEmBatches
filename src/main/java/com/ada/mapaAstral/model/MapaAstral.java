@@ -11,14 +11,10 @@ public class MapaAstral implements CSVConvertible {
     private String signo;
     private String ascendente;
     private String signoLunar;
-
-    @Override
-    public String toString() {
-        return signo.concat(",").concat(ascendente).concat(",").concat(signoLunar);
-    }
+    private Pessoa pessoa;
 
     @Override
     public String toCSV() {
-        return String.format("%s,%s,%s", signo, ascendente, signoLunar);
+        return String.format("%s,%s,%s,%s", pessoa.toCSV(), signo, ascendente, signoLunar);
     }
 }

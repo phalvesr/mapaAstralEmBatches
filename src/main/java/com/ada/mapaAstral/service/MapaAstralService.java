@@ -2,48 +2,48 @@ package com.ada.mapaAstral.service;
 
 import com.ada.mapaAstral.model.MapaAstral;
 import com.ada.mapaAstral.model.Pessoa;
-import com.ada.mapaAstral.repository.PessoaRepository;
+import com.ada.mapaAstral.repository.MapaAstralRepository;
 import com.ada.mapaAstral.type.ArquivoSalvo;
 import com.ada.mapaAstral.type.either.Either;
 import com.ada.mapaAstral.util.Util;
 import lombok.RequiredArgsConstructor;
 
 import java.time.*;
-import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 @RequiredArgsConstructor
 public class MapaAstralService {
 
-    private final PessoaRepository repository;
+    private final MapaAstralRepository repository;
+    private final PessoaService pessoaService;
 
-    public List<Pessoa> getPessoas() {
+    public void importarMapasAstrais() {
 
-        Either<Exception, List<Pessoa>> resultadoBuscaPessoas =  repository.findAll();
+        List<Pessoa> pessoas = pessoaService.buscaPessoas();
 
-        if (resultadoBuscaPessoas.isLeft()) {
-            System.out.println(resultadoBuscaPessoas.unsafeGetLeft().getMessage());
-            return Collections.emptyList();
-        } else {
-            return resultadoBuscaPessoas.unsafeGetRight();
-        }
+        List<MapaAstral> mapasAstrais = criarMapasAstrais(pessoas);
+
+        mapasAstrais.forEach(this::persistirMapaAstral);
     }
 
-    public void gravaInformacoesPessoa(Pessoa pessoa) {
-        MapaAstral mapaAstral = mapaAstral(pessoa.getDataNascimento(), pessoa.getZoneId().toString());
+    private List<MapaAstral> criarMapasAstrais(List<Pessoa> pessoas) {
 
-        Either<Exception, ArquivoSalvo> resultadoPersistencia = repository.salvar(pessoa, mapaAstral);
-
-        if (resultadoPersistencia.isLeft()) {
-            System.out.format("Erro ao salvar arquivo csv. Mensagem de exception: %s%n", resultadoPersistencia.unsafeGetLeft().getMessage());
-        } else {
-            System.out.println(resultadoPersistencia.unsafeGetRight().getMessage());
-        }
+        return pessoas.stream()
+                .map(this::montarMapaAstral)
+                .toList();
     }
 
-    public String buscaPorSigno(LocalDate datanascimento) {
+    private MapaAstral montarMapaAstral(Pessoa pessoa) {
+
+        var signo = getSigno(pessoa.getDataNascimento().toLocalDate());
+        var ascendente = getAscendente(signo, pessoa.getDataNascimento().toLocalTime());
+        var signoLunar = getSignoLunar(pessoa.getDataNascimento().toLocalTime(), pessoa.getZoneId().getId());
+
+        return new MapaAstral(signo, ascendente, signoLunar, pessoa);
+    }
+
+    private String getSigno(LocalDate datanascimento) {
         MonthDay monthDayNascimento = MonthDay.of(datanascimento.getMonth(), datanascimento.getDayOfMonth());
 
         MonthDay ariesStartDate = MonthDay.of(3, 21);
@@ -57,10 +57,12 @@ public class MapaAstralService {
         } else if (Util.isWithinRange(monthDayNascimento, sagitarioStartDate, sagitarioEndDate)) {
             return "Sagitario";
         }
+
         return "Não tem signo!!";
     }
 
-    public String procurarAscendente(String signo, LocalTime horarioDeNascimento) {
+    private String getAscendente(String signo, LocalTime horarioDeNascimento) {
+
         if ("Aries".equalsIgnoreCase(signo)) {
             if (Util.isWithinRange(horarioDeNascimento, LocalTime.of(18, 31), LocalTime.of(20, 30))) {
                 return "escorpião";
@@ -73,39 +75,7 @@ public class MapaAstralService {
         return "Ufa, não tem ascendente";
     }
 
-    public MapaAstral mapaAstral(LocalDateTime dataHoraNascimento, String localNascimento) {
-
-        localizarIdade(dataHoraNascimento);
-        buscaPorZona(dataHoraNascimento);
-        formarDataDeNascimento(dataHoraNascimento);
-
-        String signo = buscaPorSigno(dataHoraNascimento.toLocalDate());
-        String ascendente = procurarAscendente(signo, dataHoraNascimento.toLocalTime());
-        String signoLunar = localizarSingnoLunar(dataHoraNascimento.toLocalTime(), localNascimento);
-
-        return new MapaAstral(signo, ascendente, signoLunar);
-    }
-
-    private void localizarIdade(LocalDateTime dataHoraNascimento) {
-        Period idade = Period.between(dataHoraNascimento.toLocalDate(), LocalDate.now());
-        System.out.println("idade: " + idade.getYears());
-
-    }
-
-    private void buscaPorZona(LocalDateTime dataHoraNascimento) {
-        ZoneId zoneId = ZoneId.of("America/Recife");
-        System.out.println(zoneId);
-        ZoneOffset currentOffsetForMyZone = zoneId.getRules().getOffset(dataHoraNascimento);
-        System.out.println(currentOffsetForMyZone);
-    }
-
-    private void formarDataDeNascimento(LocalDateTime dataHoraNascimento) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-        String format = formatter.format(dataHoraNascimento);
-        System.out.println(format);
-    }
-
-    public String localizarSingnoLunar(LocalTime time, String localNascimento) {
+    private String getSignoLunar(LocalTime time, String localNascimento) {
         Set<String> zones = ZoneId.getAvailableZoneIds();
         for (String s : zones) {
             if (s.contains((localNascimento))) {
@@ -126,14 +96,14 @@ public class MapaAstralService {
         }
         return "Dinossauro";
     }
+
+    private void persistirMapaAstral(MapaAstral mapaAstral) {
+        Either<Exception, ArquivoSalvo> resultadoPersistencia = repository.salvar(mapaAstral);
+
+        if (resultadoPersistencia.isLeft()) {
+            System.out.format("Erro ao salvar arquivo csv. Mensagem de exception: %s%n", resultadoPersistencia.unsafeGetLeft().getMessage());
+        } else {
+            System.out.println(resultadoPersistencia.unsafeGetRight().getMessage());
+        }
+    }
 }
-
-
-/*
--- singnoLunar
-- Se a pessoa nasceu Em Recife e depois das 12h00, deve  retornar "Casimiro"
-- Se a pessoa nasceu Em Cuiaba e antes das 12h00, deve  retornar "Odin"
-- Se a pessoa nasceu Em São Paulo (não importa o horario), deve retornar "Gandalf"
-- Em qualquer outro caso, deve retornar: "Dinossauro"
-
- */
