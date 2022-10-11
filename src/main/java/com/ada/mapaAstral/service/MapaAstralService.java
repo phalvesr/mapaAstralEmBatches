@@ -90,7 +90,7 @@ public class MapaAstralService {
         return Right.create(resource);
     }
 
-    private MapaAstral montarMapaAstral(Pessoa pessoa) {
+    MapaAstral montarMapaAstral(Pessoa pessoa) {
 
         var signo = getSigno(pessoa.getDataNascimento().toLocalDate());
         var ascendente = getAscendente(signo, pessoa.getDataNascimento().toLocalTime());
